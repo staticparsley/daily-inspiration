@@ -9,7 +9,7 @@ module.exports.sendEmail = async (event) => {
   try {
     await sendgrid.sendMultiple({
       to: subs,
-      from: "ruben@slidein.to",
+      from: "email",
       subject: `[Daily Words of Wisdom]`,
       text: "Get Inspired Today",
       html: emailHTML,
