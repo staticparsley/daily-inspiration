@@ -30,8 +30,10 @@ provider:
           Resource:
             - Fn::GetAtt: [ UsersTable, Arn ]
   environment:
+    SENDGRID_API_KEY: "SG.add_your_own_sendgrid_api.ak-TofaGlzex-xxxx"
     USERS_TABLE: ${self:custom.tableName}
     REGION: ${self:provider.region}
+    SNS_TOPIC_ARN: arn:aws:sns:us-east-1:371636523863:quotes-messages-dev
 
 functions:
   quotes:
@@ -39,29 +41,46 @@ functions:
     events:
       - http:
           path: quotes
-          method: get
+          method: get 
           cors: true
+
   subscribe:
-    handler: hander/subscribeUser.subscribeUser
+    handler: handler/subscribeUser.subscribeUser
     events:
       - http:
           path: subscribe
-          method: post
+          method: post 
+          cors: true
+
+  staticMailer:
+    handler: handler/staticMailer.staticMailer
+    events:
+      - http:
+          path: static-mailer
+          method: post 
+          cors: true
+
+  sendEmail:
+    handler: handler/sendEmail.sendEmail
+    events:
+      - http:
+          path: sendEmail
+          method: post 
+          cors: true
+          #Fire at 1 PM every day UTC (9 am EST) - cron examples: https://docs.oracle.com/cd/E12058_01/doc/doc.1014/e12030/cron_expressions.htm
+     #https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html
+      - schedule: cron(0 13 * * ? *)
+          
+  getSubscribers:
+    handler: handler/getSubscribers.getSubscribers
+    events:
+      - http:
+          path: getSubscribers
+          method: get 
           cors: true
 
 resources:
   Resources:
-    UsersTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        AttributeDefinitions:
-          - AttributeName: userId
-            AttributeType: S
-        KeySchema:
-          - AttributeName: userId
-            KeyType: HASH
-        BillingMode: PAY_PER_REQUEST
-        TableName: ${self:custom.tableName}
   #SNS
     QuotesMessages:
       Type: AWS::SNS::Topic
@@ -79,3 +98,17 @@ resources:
             minDelayTarget: 30
             maxDelayTarget: 600
             backoffFunction: exponential
+
+
+
+    UsersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:custom.tableName}
